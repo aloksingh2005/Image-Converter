@@ -69,8 +69,15 @@ body {
 }
 
 @keyframes gradientShift {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
 /* ==================== Theme Toggle Button ==================== */
@@ -98,10 +105,21 @@ body {
   background: var(--bg-tertiary);
 }
 
-body[data-theme="dark"] .sun-icon { display: block; }
-body[data-theme="dark"] .moon-icon { display: none; }
-body[data-theme="light"] .sun-icon { display: none; }
-body[data-theme="light"] .moon-icon { display: block; }
+body[data-theme="dark"] .sun-icon {
+  display: block;
+}
+
+body[data-theme="dark"] .moon-icon {
+  display: none;
+}
+
+body[data-theme="light"] .sun-icon {
+  display: none;
+}
+
+body[data-theme="light"] .moon-icon {
+  display: block;
+}
 
 .theme-toggle svg {
   color: var(--accent-primary);
@@ -125,6 +143,7 @@ body[data-theme="light"] .moon-icon { display: block; }
     opacity: 0;
     transform: translateY(30px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -157,6 +176,7 @@ body[data-theme="light"] .moon-icon { display: block; }
     opacity: 0;
     transform: translateY(-20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -215,7 +235,7 @@ body[data-theme="light"] .moon-icon { display: block; }
   box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
 }
 
-.drop-area > * {
+.drop-area>* {
   position: relative;
   z-index: 1;
 }
@@ -227,8 +247,15 @@ body[data-theme="light"] .moon-icon { display: block; }
 }
 
 @keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 .drop-area p {
@@ -282,6 +309,7 @@ body[data-theme="light"] .moon-icon { display: block; }
     opacity: 0;
     transform: translateX(-20px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -654,18 +682,21 @@ body[data-theme="light"] .moon-icon { display: block; }
   left: 0;
   bottom: 0;
   right: 0;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.3),
-    transparent
-  );
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(255, 255, 255, 0.3),
+      transparent);
   animation: shimmer 1.5s infinite;
 }
 
 @keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 /* ==================== Conversion Results ==================== */
@@ -679,8 +710,13 @@ body[data-theme="light"] .moon-icon { display: block; }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .results-header {
@@ -764,6 +800,7 @@ body[data-theme="light"] .moon-icon { display: block; }
     opacity: 0;
     transform: scale(0.9);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -778,9 +815,14 @@ body[data-theme="light"] .moon-icon { display: block; }
 .preview-img {
   width: 100%;
   height: 200px;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
+  background-color: rgba(0, 0, 0, 0.4);
   border-bottom: 1px solid var(--border-color);
+}
+
+body[data-theme="light"] .preview-img {
+  background-color: rgba(0, 0, 0, 0.05);
 }
 
 .comparison-container {
@@ -1014,6 +1056,7 @@ body[data-theme="light"] .moon-icon { display: block; }
 
 /* ==================== Accessibility ==================== */
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {

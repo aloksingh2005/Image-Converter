@@ -24,7 +24,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const downloadAllBtn = document.getElementById("download-all-btn");
   const compareToggle = document.getElementById("compare-toggle");
   const themeToggle = document.getElementById("theme-toggle");
-  
+
   // Resize elements
   const enableResize = document.getElementById("enable-resize");
   const maintainAspect = document.getElementById("maintain-aspect");
@@ -32,7 +32,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const heightInput = document.getElementById("height-input");
   const scalePercentage = document.getElementById("scale-percentage");
   const resizeInputs = document.getElementById("resize-inputs");
-  
+
   // Adjustment elements
   const rotationSelect = document.getElementById("rotation-select");
   const flipSelect = document.getElementById("flip-select");
@@ -44,10 +44,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const saturationValue = document.getElementById("saturation-value");
   const blurSlider = document.getElementById("blur-slider");
   const blurValue = document.getElementById("blur-value");
-  
+
   // Filter elements
   const filterButtons = document.querySelectorAll(".filter-btn");
-  
+
   // Watermark elements
   const enableWatermark = document.getElementById("enable-watermark");
   const watermarkText = document.getElementById("watermark-text");
@@ -55,7 +55,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const watermarkOpacity = document.getElementById("watermark-opacity");
   const watermarkOpacityValue = document.getElementById("watermark-opacity-value");
   const watermarkInputs = document.getElementById("watermark-inputs");
-  
+
   // Stats elements
   const totalFiles = document.getElementById("total-files");
   const totalSaved = document.getElementById("total-saved");
@@ -73,7 +73,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Load theme preference
     const savedTheme = localStorage.getItem("theme") || "dark";
     document.body.setAttribute("data-theme", savedTheme);
-    
+
     // Initialize slider values
     updateSliderValue(qualitySlider, qualityValue);
     updateSliderValue(brightnessSlider, brightnessValue);
@@ -81,13 +81,13 @@ document.addEventListener("DOMContentLoaded", () => {
     updateSliderValue(saturationSlider, saturationValue);
     updateSliderValue(blurSlider, blurValue);
     updateSliderValue(watermarkOpacity, watermarkOpacityValue);
-    
+
     // Hide optional sections initially
     resizeInputs.style.display = "none";
     watermarkInputs.style.display = "none";
     progressContainer.style.display = "none";
     conversionResults.style.display = "none";
-    
+
     setupEventListeners();
   }
 
@@ -95,14 +95,14 @@ document.addEventListener("DOMContentLoaded", () => {
   function setupEventListeners() {
     // Theme toggle
     themeToggle.addEventListener("click", toggleTheme);
-    
+
     // File upload
     dropArea.addEventListener("click", () => fileInput.click());
     dropArea.addEventListener("dragover", handleDragOver);
     dropArea.addEventListener("dragleave", handleDragLeave);
     dropArea.addEventListener("drop", handleDrop);
     fileInput.addEventListener("change", handleFileSelect);
-    
+
     // Keyboard accessibility for drop area
     dropArea.addEventListener("keypress", (e) => {
       if (e.key === "Enter" || e.key === " ") {
@@ -110,7 +110,7 @@ document.addEventListener("DOMContentLoaded", () => {
         fileInput.click();
       }
     });
-    
+
     // Sliders
     qualitySlider.addEventListener("input", () => updateSliderValue(qualitySlider, qualityValue));
     brightnessSlider.addEventListener("input", () => updateSliderValue(brightnessSlider, brightnessValue));
@@ -118,17 +118,20 @@ document.addEventListener("DOMContentLoaded", () => {
     saturationSlider.addEventListener("input", () => updateSliderValue(saturationSlider, saturationValue));
     blurSlider.addEventListener("input", () => updateSliderValue(blurSlider, blurValue));
     watermarkOpacity.addEventListener("input", () => updateSliderValue(watermarkOpacity, watermarkOpacityValue));
-    
+
     // Resize settings
     enableResize.addEventListener("change", toggleResizeInputs);
     maintainAspect.addEventListener("change", handleAspectRatioToggle);
     widthInput.addEventListener("input", handleDimensionChange);
     heightInput.addEventListener("input", handleDimensionChange);
     scalePercentage.addEventListener("input", handleScaleChange);
-    
+
     // Watermark settings
     enableWatermark.addEventListener("change", toggleWatermarkInputs);
-    
+
+    // Format select change
+    formatSelect.addEventListener("change", handleFormatChange);
+
     // Filter buttons
     filterButtons.forEach(btn => {
       btn.addEventListener("click", () => {
@@ -137,7 +140,7 @@ document.addEventListener("DOMContentLoaded", () => {
         selectedFilter = btn.dataset.filter;
       });
     });
-    
+
     // Action buttons
     convertBtn.addEventListener("click", startConversion);
     resetBtn.addEventListener("click", resetSettings);
@@ -167,7 +170,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function handleDrop(e) {
     e.preventDefault();
     dropArea.classList.remove("active");
-    const files = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('image/'));
+    const files = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('image/') || file.name.match(/\.(heic|heif|jpg|jpeg|png|webp|avif|bmp|gif|tiff)$/i));
     if (files.length > 0) {
       addFiles(files);
     } else {
@@ -176,23 +179,50 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function handleFileSelect() {
-    const files = Array.from(fileInput.files).filter(file => file.type.startsWith('image/'));
+    const files = Array.from(fileInput.files).filter(file => file.type.startsWith('image/') || file.name.match(/\.(heic|heif|jpg|jpeg|png|webp|avif|bmp|gif|tiff)$/i));
     if (files.length > 0) {
       addFiles(files);
     }
     fileInput.value = "";
   }
 
-  function addFiles(files) {
+  async function addFiles(files) {
     let addedCount = 0;
-    files.forEach(file => {
+
+    const hasHeic = files.some(f => f.name.match(/\.(heic|heif)$/i));
+    if (hasHeic && typeof heic2any !== 'undefined') {
+      showNotification("Converting HEIC images to JPEG for editing, please wait...", "info");
+    }
+
+    for (const file of files) {
       if (!uploadedFiles.some(f => f.name === file.name && f.size === file.size)) {
-        uploadedFiles.push(file);
-        displayFileInList(file);
+        let fileToAdd = file;
+
+        if (file.name.match(/\.(heic|heif)$/i) && typeof heic2any !== 'undefined') {
+          try {
+            const convertedBlob = await heic2any({
+              blob: file,
+              toType: "image/jpeg",
+              quality: 0.95
+            });
+            const finalBlob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+            fileToAdd = new File([finalBlob], file.name.replace(/\.hei[cf]$/i, '.jpg'), {
+              type: "image/jpeg",
+              lastModified: file.lastModified,
+            });
+          } catch (err) {
+            console.error("HEIC conversion failed:", err);
+            showNotification(`Failed to process ${file.name}`, "error");
+            continue;
+          }
+        }
+
+        uploadedFiles.push(fileToAdd);
+        displayFileInList(fileToAdd);
         addedCount++;
       }
-    });
-    
+    }
+
     if (addedCount > 0) {
       showNotification(`${addedCount} file(s) added successfully`, "success");
     }
@@ -243,6 +273,22 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ==================== Settings Handlers ====================
+  function handleFormatChange() {
+    const isLossless = formatSelect.value === 'png' || formatSelect.value === 'bmp';
+    const qualityGroup = document.getElementById('quality-group');
+    if (qualityGroup) {
+      if (isLossless) {
+        qualityGroup.style.opacity = '0.5';
+        qualityGroup.style.pointerEvents = 'none';
+        qualitySlider.disabled = true;
+      } else {
+        qualityGroup.style.opacity = '1';
+        qualityGroup.style.pointerEvents = 'auto';
+        qualitySlider.disabled = false;
+      }
+    }
+  }
+
   function updateSliderValue(slider, display) {
     display.textContent = slider.value;
   }
@@ -262,6 +308,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function handleDimensionChange(e) {
+    if (e.target.value) {
+      scalePercentage.value = "";
+    }
     if (maintainAspect.checked && uploadedFiles.length > 0) {
       const img = new Image();
       const reader = new FileReader();
@@ -281,18 +330,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function handleScaleChange() {
-    if (scalePercentage.value && uploadedFiles.length > 0) {
-      const img = new Image();
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        img.onload = () => {
-          const scale = parseFloat(scalePercentage.value) / 100;
-          widthInput.value = Math.round(img.width * scale);
-          heightInput.value = Math.round(img.height * scale);
-        };
-        img.src = event.target.result;
-      };
-      reader.readAsDataURL(uploadedFiles[0]);
+    if (scalePercentage.value) {
+      widthInput.value = "";
+      heightInput.value = "";
     }
   }
 
@@ -327,21 +367,22 @@ document.addEventListener("DOMContentLoaded", () => {
     enableWatermark.checked = false;
     watermarkText.value = "";
     watermarkOpacity.value = 50;
-    
+
     updateSliderValue(qualitySlider, qualityValue);
     updateSliderValue(brightnessSlider, brightnessValue);
     updateSliderValue(contrastSlider, contrastValue);
     updateSliderValue(saturationSlider, saturationValue);
     updateSliderValue(blurSlider, blurValue);
     updateSliderValue(watermarkOpacity, watermarkOpacityValue);
-    
+
     filterButtons.forEach(b => b.classList.remove("active"));
     filterButtons[0].classList.add("active");
     selectedFilter = "none";
-    
+
     toggleResizeInputs();
     toggleWatermarkInputs();
-    
+    if (typeof handleFormatChange === 'function') handleFormatChange();
+
     showNotification("Settings reset to default", "info");
   }
 
@@ -350,13 +391,13 @@ document.addEventListener("DOMContentLoaded", () => {
       showNotification("Nothing to clear", "info");
       return;
     }
-    
+
     uploadedFiles = [];
     convertedFiles = [];
     filesList.innerHTML = "";
     previewContainer.innerHTML = "";
     conversionResults.style.display = "none";
-    
+
     showNotification("All files cleared", "success");
   }
 
@@ -382,14 +423,14 @@ document.addEventListener("DOMContentLoaded", () => {
       for (let i = 0; i < uploadedFiles.length; i++) {
         const file = uploadedFiles[i];
         progressText.textContent = `Processing ${file.name}...`;
-        
+
         const result = await convertImage(file, settings);
         convertedFiles.push(result);
-        
+
         totalSavings += (file.size - result.size);
-        
+
         createPreviewItem(result, file);
-        
+
         const percentage = Math.round(((i + 1) / uploadedFiles.length) * 100);
         progressBar.style.width = `${percentage}%`;
         progressPercentage.textContent = `${percentage}%`;
@@ -398,16 +439,16 @@ document.addEventListener("DOMContentLoaded", () => {
       // Show results
       conversionResults.style.display = "block";
       totalFiles.textContent = `${convertedFiles.length} file${convertedFiles.length !== 1 ? 's' : ''}`;
-      totalSaved.textContent = totalSavings > 0 
-        ? `${formatFileSize(totalSavings)} saved` 
+      totalSaved.textContent = totalSavings > 0
+        ? `${formatFileSize(totalSavings)} saved`
         : `${formatFileSize(Math.abs(totalSavings))} increase`;
-      
+
       progressText.textContent = "Conversion complete!";
-      
+
       setTimeout(() => {
         progressContainer.style.display = "none";
       }, 2000);
-      
+
       showNotification("All images converted successfully!", "success");
     } catch (error) {
       console.error("Conversion error:", error);
@@ -423,6 +464,7 @@ document.addEventListener("DOMContentLoaded", () => {
       resize: enableResize.checked ? {
         width: widthInput.value ? parseInt(widthInput.value) : null,
         height: heightInput.value ? parseInt(heightInput.value) : null,
+        scale: scalePercentage.value ? parseFloat(scalePercentage.value) / 100 : null,
         maintainAspect: maintainAspect.checked
       } : null,
       rotation: parseInt(rotationSelect.value),
@@ -457,17 +499,20 @@ document.addEventListener("DOMContentLoaded", () => {
             let height = img.height;
 
             if (settings.resize) {
-              if (settings.resize.width && settings.resize.height) {
+              if (settings.resize.scale) {
+                width = Math.round(img.width * settings.resize.scale);
+                height = Math.round(img.height * settings.resize.scale);
+              } else if (settings.resize.width && settings.resize.height) {
                 width = settings.resize.width;
                 height = settings.resize.height;
               } else if (settings.resize.width) {
                 width = settings.resize.width;
-                height = settings.resize.maintainAspect 
+                height = settings.resize.maintainAspect
                   ? Math.round((img.height / img.width) * width)
                   : img.height;
               } else if (settings.resize.height) {
                 height = settings.resize.height;
-                width = settings.resize.maintainAspect 
+                width = settings.resize.maintainAspect
                   ? Math.round((img.width / img.height) * height)
                   : img.width;
               }
@@ -484,7 +529,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // Apply transformations
             ctx.save();
-            
+
             // Rotation
             if (settings.rotation !== 0) {
               ctx.translate(canvas.width / 2, canvas.height / 2);
@@ -588,20 +633,20 @@ document.addEventListener("DOMContentLoaded", () => {
   function applyWatermark(ctx, canvas, watermark) {
     ctx.save();
     ctx.globalAlpha = watermark.opacity;
-    
+
     const fontSize = Math.max(canvas.width / 30, 16);
     ctx.font = `${fontSize}px Arial`;
     ctx.fillStyle = "white";
     ctx.strokeStyle = "black";
     ctx.lineWidth = 2;
-    
+
     const textMetrics = ctx.measureText(watermark.text);
     const textWidth = textMetrics.width;
     const textHeight = fontSize;
-    
+
     let x, y;
     const padding = 20;
-    
+
     switch (watermark.position) {
       case "top-left":
         x = padding;
@@ -624,7 +669,7 @@ document.addEventListener("DOMContentLoaded", () => {
         y = canvas.height / 2;
         break;
     }
-    
+
     ctx.strokeText(watermark.text, x, y);
     ctx.fillText(watermark.text, x, y);
     ctx.restore();
@@ -707,13 +752,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const info = document.createElement("div");
     info.className = "preview-info";
-    
+
     const sizeDiff = result.size - result.originalSize;
-    const sizeChange = sizeDiff > 0 
-      ? `+${formatFileSize(sizeDiff)}` 
+    const sizeChange = sizeDiff > 0
+      ? `+${formatFileSize(sizeDiff)}`
       : formatFileSize(Math.abs(sizeDiff));
     const sizeColor = sizeDiff > 0 ? "red" : "green";
-    
+
     info.innerHTML = `
       <div><strong>Original:</strong> ${originalFile.name}</div>
       <div><strong>Dimensions:</strong> ${result.width} × ${result.height}</div>
@@ -743,7 +788,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function toggleComparison() {
     showComparison = !showComparison;
-    
+
     // Recreate previews with new mode
     if (convertedFiles.length > 0) {
       previewContainer.innerHTML = "";
@@ -751,7 +796,7 @@ document.addEventListener("DOMContentLoaded", () => {
         createPreviewItem(result, uploadedFiles[index]);
       });
     }
-    
+
     compareToggle.textContent = showComparison ? "Hide Comparison" : "Show Comparison";
   }
 
@@ -772,7 +817,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       showNotification("Creating ZIP file...", "info");
-      
+
       const zip = new JSZip();
       const folder = zip.folder("converted_images");
 
@@ -810,13 +855,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const notification = document.createElement("div");
     notification.className = `notification notification-${type}`;
     notification.textContent = message;
-    
+
     // Add to body
     document.body.appendChild(notification);
-    
+
     // Trigger animation
     setTimeout(() => notification.classList.add("show"), 10);
-    
+
     // Remove after 3 seconds
     setTimeout(() => {
       notification.classList.remove("show");
